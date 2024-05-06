@@ -1,0 +1,5 @@
+-r requirements.in
+
+uv==0.1.39
+ruff==0.4.3
+mypy==1.9.0
