@@ -28,7 +28,7 @@ SIGNAL_THRESHOLDS='["5,4","20,10"]'  # Пороги для отправки си
 Вы можете запустить приложение с помощью команды:
 
 ```shell
-docker compose -d deployment/docker-compose.yaml up -d --build
+docker compose -f deployment/docker-compose.yaml up -d --build
 ```
 
 Вместе с приложением запустится docker контейнер с БД Redis с включенной модификацией RedisTimeSeries, который
