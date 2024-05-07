@@ -200,7 +200,7 @@ class Screener:
 
         msg_args = (exchange, symbol, is_uptrend, period_min, percent, min_price, max_price, signals)
         for chat_id in settings.TARGET_IDS:
-            msg_key = f"{chat_id}_{symbol}_{period}_{txt_action}"
+            msg_key = f"{chat_id}_{exchange}_{symbol}_{period}_{txt_action}"
 
             if not update:
                 logger.info(f"Цена {exchange}:{symbol} {action} на {abs(percent)}% за период {period_min} мин")
