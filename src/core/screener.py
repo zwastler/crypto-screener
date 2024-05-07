@@ -26,35 +26,39 @@ class Screener:
         symbol: str = ""
         while True:
             message = await queue.get()
+            exchange = message["exchange"]
             for trade in message["data"]:
                 symbol = trade["s"]
-                price = trade["p"]
-                timestamp = trade["T"]
+                price = float(trade["p"])
+                timestamp = int(trade["T"])
 
-                if not self.symbol_prices.get(symbol, {}):
+                market_key = f"{exchange}_{symbol}"
+
+                if not self.symbol_prices.get(market_key, {}):
                     try:
-                        await self.create_timeseries(symbol)
+                        await self.create_timeseries(market_key)
                     except Exception as err:
-                        logger.error(f"Failed to create timeseries for {symbol}: {err}", exc_info=True)
+                        logger.error(f"Failed to create timeseries for {market_key}: {err}", exc_info=True)
 
                 if (
-                    self.symbol_prices.get(symbol, {}).get("price", 0) == price
-                    or self.symbol_prices.get(symbol, {}).get("saved_ts", 0) == timestamp
-                    or self.symbol_prices.get(symbol, {}).get("saved_ts", 0) > int((time.time() - 0.1) * 1000)
+                    self.symbol_prices.get(market_key, {}).get("price", 0) == price
+                    or self.symbol_prices.get(market_key, {}).get("saved_ts", 0) == timestamp
+                    or self.symbol_prices.get(market_key, {}).get("saved_ts", 0) > int((time.time() - 0.25) * 1000)
                 ):
+                    await logger.adebug(f"Skipping {market_key} price: {price}")
                     continue
 
                 try:
-                    await time_series.add(symbol, timestamp, price, duplicate_policy="last")
-                    self.symbol_prices[symbol]["saved_ts"] = timestamp
+                    await time_series.add(market_key, timestamp, price, duplicate_policy="last")
+                    self.symbol_prices[market_key]["saved_ts"] = timestamp
                 except Exception as err:
-                    logger.error(f"Failed to write {symbol} price to Redis: {err}", exc_info=True)
+                    logger.error(f"Failed to write {market_key} price to Redis: {err}", exc_info=True)
 
-                self.symbol_prices[symbol].update({"price": price, "timestamp": timestamp})
+                self.symbol_prices[market_key].update({"price": price, "timestamp": timestamp})
 
             try:
-                await self.check_price_change(symbol)
-                await self.delete_old_timeseries(symbol)
+                await self.check_price_change(market_key)
+                await self.delete_old_timeseries(market_key)
             except Exception as err:
                 logger.error(f"Failed to check {symbol}: {err}", exc_info=True)
 
@@ -76,24 +80,26 @@ class Screener:
             if "already exists" not in str(err):
                 logger.error(err)
 
-    async def delete_old_timeseries(self, symbol: str) -> None:
+    async def delete_old_timeseries(self, market_key: str) -> None:
         if (
-            self.symbol_prices[symbol].get("clear_ts")
-            and self.symbol_prices[symbol]["clear_ts"] < int(time.time()) - settings.CLEAR_INTERVAL
+            self.symbol_prices[market_key].get("clear_ts")
+            and self.symbol_prices[market_key].get("clear_ts", 0) > time.time() - settings.CLEAR_INTERVAL
         ):
+            await logger.adebug(f"Skipping {market_key} delete old timeseries")
             return
+
         start_time = time.perf_counter()
-        self.symbol_prices[symbol]["clear_ts"] = int(time.time())
+        self.symbol_prices[market_key]["clear_ts"] = int(time.time())
 
         max_period = max([check_range["period"] for check_range in self.check_ranges])
         start_period = (int(time.time()) - 60 * 60 * 24) * 1000
-        res = await time_series.delete(symbol, start_period, (int(time.time()) - max_period) * 1000)
+        res = await time_series.delete(market_key, start_period, (int(time.time()) - max_period) * 1000)
         latency = round(time.perf_counter() - start_time, 5)
-        logger.debug(f"Cleared old data for {symbol} ({latency=}, {res=})")
+        logger.debug(f"Cleared old data for {market_key} ({latency=}, {res=})")
 
         start_signals_ts = int((time.time() - (60 * 60 * 24 * 7)) * 1000)
-        res = await time_series.delete(f"{symbol}_signals", start_signals_ts, start_period)
-        logger.debug(f"Cleared old signals for {symbol} ({latency=}, {res=})")
+        res = await time_series.delete(f"{market_key}_signals", start_signals_ts, start_period)
+        logger.debug(f"Cleared old signals for {market_key} ({latency=}, {res=})")
 
     @staticmethod
     async def is_uptrend(prices: list[float]) -> bool:
@@ -116,14 +122,16 @@ class Screener:
 
         return True if increasing_count > decreasing_count else False
 
-    async def check_price_change(self, symbol: str) -> None:
-        if not symbol or not self.symbol_prices.get(symbol):
+    async def check_price_change(self, market_key: str) -> None:
+        if not market_key or not self.symbol_prices.get(market_key):
+            await logger.adebug(f"Skipping {market_key} check price change")
             return
 
-        symbol_data = self.symbol_prices[symbol]
-        if symbol_data.get("check_ts") and symbol_data.get("check_ts", 0) > time.time() - 0.5:
+        symbol_data = self.symbol_prices[market_key]
+        if symbol_data.get("check_ts") and symbol_data.get("check_ts", 0) > time.time() - 1:  # check every 1sec
+            await logger.adebug(f"Skipping {market_key} check price change")
             return
-        logger.debug(f"Checking {symbol} price change for signals")
+        logger.debug(f"Checking {market_key} price change for signals")
         symbol_data["check_ts"] = time.time()
 
         for check_range in self.check_ranges:
@@ -133,7 +141,7 @@ class Screener:
             start_time = (int(time.time()) - period) * 1000
             end_time = int(time.time() * 1000)
             before_24h = int((time.time() - 60 * 60 * 24) * 1000)
-            price_data = await time_series.range(symbol, start_time, end_time)
+            price_data = await time_series.range(market_key, start_time, end_time)
 
             if not price_data or len(price_data) < settings.PRICE_SUBSETS:
                 continue
@@ -146,25 +154,25 @@ class Screener:
             price_change_percent = round(((max_price - min_price) / min_price) * 100, 1)
             is_uptrend = await self.is_uptrend(prices)
 
-            signal_key = f"{symbol}_{period}_last_percent"
+            signal_key = f"{market_key}_{period}_last_percent"
 
             if signal_perc := await redis.get(signal_key):
                 signal_perc = float(signal_perc)
                 if signal_ttl := await redis.ttl(signal_key):
                     signal_ttl = int(signal_ttl)
 
-            if signals := await time_series.range(f"{symbol}_signals", before_24h, end_time):
+            if signals := await time_series.range(f"{market_key}_signals", before_24h, end_time):
                 signals = len(signals)
             else:
                 signals = 0
 
             if abs(price_change_percent) > threshold:
-                signal_args = (symbol, price_change_percent, period, is_uptrend, min_price, max_price, signals)
+                signal_args = (market_key, price_change_percent, period, is_uptrend, min_price, max_price, signals)
 
                 if not signal_perc:
                     await self.signal_action(*signal_args)
                     await redis.set(signal_key, price_change_percent, ex=settings.SIGNAL_TIMEOUT)
-                    await time_series.add(f"{symbol}_signals", end_time, 1)
+                    await time_series.add(f"{market_key}_signals", end_time, 1)
 
                 elif signal_perc and abs(price_change_percent) > signal_perc:
                     try:
@@ -173,9 +181,9 @@ class Screener:
                     except Exception as err:
                         logger.error(f"Failed to update signal key: {err}", exc_info=True)
 
+    @staticmethod
     async def signal_action(
-        self,
-        symbol: str,
+        market_key: str,
         percent: float,
         period: int,
         is_uptrend: bool,
@@ -188,17 +196,19 @@ class Screener:
         action = "выросла" if is_uptrend else "упала"
         txt_action = "up" if is_uptrend else "down"
 
-        chat_id = settings.TARGET_IDS[0]
-        msg_args = (self.exchange, symbol, is_uptrend, period_min, percent, min_price, max_price, signals)
-        msg_key = f"{chat_id}_{symbol}_{period}_{txt_action}"
+        exchange, symbol = market_key.split("_", 1)
 
-        if not update:
-            logger.info(f"Цена {symbol} {action} на {abs(percent)}% за период {period_min} мин")
-            if tg_msg_id := await send_tg_message(chat_id, create_tg_message(*msg_args)):
-                await redis.set(msg_key, tg_msg_id, ex=60 * 2)
-                logger.debug(f"TG message delivered: {tg_msg_id}")
-        else:
-            logger.info(f"UPD: цена {symbol} {action} на {abs(percent)}% за период {period_min} мин")
-            if tg_msg_id := await redis.get(msg_key):
-                await update_tg_message(chat_id, int(tg_msg_id), create_tg_message(*msg_args))
-                logger.debug(f"TG message updated successfully: {tg_msg_id}")
+        msg_args = (exchange, symbol, is_uptrend, period_min, percent, min_price, max_price, signals)
+        for chat_id in settings.TARGET_IDS:
+            msg_key = f"{chat_id}_{symbol}_{period}_{txt_action}"
+
+            if not update:
+                logger.info(f"Цена {exchange}:{symbol} {action} на {abs(percent)}% за период {period_min} мин")
+                if tg_msg_id := await send_tg_message(chat_id, create_tg_message(*msg_args)):
+                    await redis.set(msg_key, tg_msg_id, ex=60 * 2)
+                    logger.debug(f"TG message delivered: {tg_msg_id}")
+            else:
+                logger.info(f"UPD: цена {exchange}:{symbol} {action} на {abs(percent)}% за период {period_min} мин")
+                if tg_msg_id := await redis.get(msg_key):
+                    await update_tg_message(chat_id, int(tg_msg_id), create_tg_message(*msg_args))
+                    logger.debug(f"TG message updated successfully: {tg_msg_id}")

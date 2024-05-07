@@ -4,7 +4,10 @@ import signal
 import structlog
 import uvloop
 
-from adapters.bybit import wss_client
+from adapters.binance import binance_wss
+from adapters.bybit import bybit_wss
+from adapters.gate import gate_wss
+from adapters.okx import okx_wss
 from core.logging import setup_logging
 from core.screener import Screener
 from settings import settings
@@ -23,7 +26,10 @@ async def main() -> None:
     queue: asyncio.Queue = asyncio.Queue()
     screener = Screener()
     tasks = [
-        asyncio.create_task(wss_client.wss_connect(queue)),
+        asyncio.create_task(bybit_wss.wss_connect(queue)),
+        asyncio.create_task(binance_wss.wss_connect(queue)),
+        asyncio.create_task(gate_wss.wss_connect(queue)),
+        asyncio.create_task(okx_wss.wss_connect(queue)),
         asyncio.create_task(screener.process_trades(queue)),
     ]
 

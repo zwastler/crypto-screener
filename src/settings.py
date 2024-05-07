@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     REDIS_URI: str = "redis://screener_redis:6379"
 
-    CLEAR_INTERVAL: int = 30
+    CLEAR_INTERVAL: int = 60
     PRICE_SUBSETS: int = 10
     SIGNAL_TIMEOUT: int = 60 * 2
 
