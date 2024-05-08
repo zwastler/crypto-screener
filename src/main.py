@@ -31,6 +31,8 @@ async def main() -> None:
         asyncio.create_task(gate_wss.wss_connect(queue)),
         asyncio.create_task(okx_wss.wss_connect(queue)),
         asyncio.create_task(screener.process_trades(queue)),
+        asyncio.create_task(screener.process_trades(queue)),
+        asyncio.create_task(screener.state_watcher(queue)),
     ]
 
     for sig in (signal.SIGTERM, signal.SIGINT):

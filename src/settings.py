@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    VERSION: str = "0.0.1"
+    VERSION: str = "0.0.2"
     ENVIRONMENT: str = "development"
 
     LOGLEVEL: str = "INFO"
