@@ -4,10 +4,7 @@ import signal
 import structlog
 import uvloop
 
-from adapters.binance import binance_wss
-from adapters.bybit import bybit_wss
-from adapters.gate import gate_wss
-from adapters.okx import okx_wss
+from adapters import adapters_list
 from core.logging import setup_logging
 from core.screener import Screener
 from settings import settings
@@ -23,17 +20,17 @@ def close_tasks(tasks: list) -> None:
 async def main() -> None:
     structlog.contextvars.bind_contextvars(version=settings.VERSION, environment=settings.ENVIRONMENT)
 
-    queue: asyncio.Queue = asyncio.Queue()
+    trades_queue: asyncio.Queue = asyncio.Queue()
     screener = Screener()
+
     tasks = [
-        asyncio.create_task(bybit_wss.wss_connect(queue)),
-        asyncio.create_task(binance_wss.wss_connect(queue)),
-        asyncio.create_task(gate_wss.wss_connect(queue)),
-        asyncio.create_task(okx_wss.wss_connect(queue)),
-        asyncio.create_task(screener.process_trades(queue)),
-        asyncio.create_task(screener.process_trades(queue)),
-        asyncio.create_task(screener.state_watcher(queue)),
+        asyncio.create_task(screener.process_trades(trades_queue)),
+        asyncio.create_task(screener.state_watcher(trades_queue)),
     ]
+
+    for exchange in settings.EXCHANGES:
+        if exchange in adapters_list:
+            tasks.append(asyncio.create_task(adapters_list[exchange](trades_queue)))
 
     for sig in (signal.SIGTERM, signal.SIGINT):
         asyncio.get_running_loop().add_signal_handler(sig, lambda: close_tasks(tasks))

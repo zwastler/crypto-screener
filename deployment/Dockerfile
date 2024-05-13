@@ -1,7 +1,6 @@
 FROM python:3.12-slim as base
 
 ARG ENVIRONMENT
-ARG UV_INDEX_URL
 
 ENV PYTHONUNBUFFERED=1 \
     DEBIAN_FRONTEND=noninteractive
@@ -20,5 +19,6 @@ RUN groupadd --gid=800 -r unprivileged \
 
 COPY --from=builder /install /usr/local
 COPY src /app
+WORKDIR /app
 
-CMD ["python", "/app/main.py"]
+CMD ["python", "main.py"]

@@ -85,10 +85,18 @@ annotated-types==0.6.0 \
     --hash=sha256:0641064de18ba7a25dee8f96403ebc39113d0cb953a01429249d5c7564666a43 \
     --hash=sha256:563339e807e53ffd9c267e99fc6d9ea23eb8443c08f112651963e24e22f84a5d
     # via pydantic
+anyio==4.3.0 \
+    --hash=sha256:048e05d0f6caeed70d731f3db756d35dcc1f35747c8c403364a8332c630441b8 \
+    --hash=sha256:f75253795a87df48568485fd18cdd2a3fa5c4f7c5be8e5e36637733fce06fed6
+    # via taskiq
 attrs==23.2.0 \
     --hash=sha256:935dc3b529c262f6cf76e50877d35a4bd3c1de194fd41f47a2b7ae8f19971f30 \
     --hash=sha256:99b87a485a5820b23b879f04c2305b44b951b502fd64be915879d77a7e8fc6f1
     # via aiohttp
+certifi==2024.2.2 \
+    --hash=sha256:0569859f95fc761b18b45ef421b1290a0f65f147e92a1e5eb3e635f9a5e4e66f \
+    --hash=sha256:dc383c07b76109f368f6106eee2b593b04a011ea4d55f652c6ca24a754d1cdd1
+    # via sentry-sdk
 emoji==2.11.1 \
     --hash=sha256:062ff0b3154b6219143f8b9f4b3e5c64c35bc2b146e6e2349ab5f29e218ce1ee \
     --hash=sha256:b7ba25299bbf520cc8727848ae66b986da32aee27dc2887eaea2bff07226ce49
@@ -176,7 +184,13 @@ frozenlist==1.4.1 \
 idna==3.7 \
     --hash=sha256:028ff3aadf0609c1fd278d8ea3089299412a7a8b9bd005dd08b9f8285bcb5cfc \
     --hash=sha256:82fee1fc78add43492d3a1898bfa6d8a904cc97d8427f683ed8e798d07761aa0
-    # via yarl
+    # via
+    #   anyio
+    #   yarl
+importlib-metadata==7.1.0 \
+    --hash=sha256:30962b96c0c223483ed6cc7280e7f0199feb01a0e40cfae4d4450fc6fab1f570 \
+    --hash=sha256:b78938b926ee8d5f020fc4772d487045805a55ddbad2ecf21c6d60938dc7fcd2
+    # via taskiq
 msgspec==0.18.6 \
     --hash=sha256:06acbd6edf175bee0e36295d6b0302c6de3aaf61246b46f9549ca0041a9d7177 \
     --hash=sha256:0e24539b25c85c8f0597274f11061c102ad6b0c56af053373ba4629772b407be \
@@ -308,10 +322,23 @@ multidict==6.0.5 \
     # via
     #   aiohttp
     #   yarl
+packaging==24.0 \
+    --hash=sha256:2ddfb553fdf02fb784c234c7ba6ccc288296ceabec964ad2eae3777778130bc5 \
+    --hash=sha256:eb82c5e3e56209074766e6885bb04b8c38a0c015d0a30036ebe7ece34c9989e9
+    # via taskiq
+prometheus-client==0.20.0 \
+    --hash=sha256:287629d00b147a32dcb2be0b9df905da599b2d82f80377083ec8463309a4bb89 \
+    --hash=sha256:cde524a85bce83ca359cc837f28b8c0db5cac7aa653a588fd7e84ba061c329e7
+    # via taskiq
+pycron==3.0.0 \
+    --hash=sha256:b916044e3e8253d5409c68df3ac64a3472c4e608dab92f40e8f595e5d3acb3de
+    # via taskiq
 pydantic==2.7.1 \
     --hash=sha256:e029badca45266732a9a79898a15ae2e8b14840b1eabbb25844be28f0b33f3d5 \
     --hash=sha256:e9dbb5eada8abe4d9ae5f46b9939aead650cd2b68f249bb3a8139dbe125803cc
-    # via pydantic-settings
+    # via
+    #   pydantic-settings
+    #   taskiq
 pydantic-core==2.18.2 \
     --hash=sha256:0098300eebb1c837271d3d1a2cd2911e7c11b396eac9661655ee524a7f10587b \
     --hash=sha256:042473b6280246b1dbf530559246f6842b56119c2926d1e52b631bdc46075f2a \
@@ -400,18 +427,46 @@ python-dotenv==1.0.1 \
     --hash=sha256:e324ee90a023d808f1959c46bcbc04446a10ced277783dc6ee09987c37ec10ca \
     --hash=sha256:f7b63ef50f1b690dddf550d03497b66d609393b40b564ed0d674909a68ebf16a
     # via pydantic-settings
+pytz==2024.1 \
+    --hash=sha256:2a29735ea9c18baf14b448846bde5a48030ed267578472d8955cd0e7443a9812 \
+    --hash=sha256:328171f4e3623139da4983451950b28e95ac706e13f3f2630a879749e7a8b319
+    # via taskiq
 redis==5.0.4 \
     --hash=sha256:7adc2835c7a9b5033b7ad8f8918d09b7344188228809c98df07af226d39dec91 \
     --hash=sha256:ec31f2ed9675cc54c21ba854cfe0462e6faf1d83c8ce5944709db8a4700b9c61
+    # via taskiq-redis
+sentry-sdk==2.1.1 \
+    --hash=sha256:95d8c0bb41c8b0bc37ab202c2c4a295bb84398ee05f4cdce55051cd75b926ec1 \
+    --hash=sha256:99aeb78fb76771513bd3b2829d12613130152620768d00cd3e45ac00cb17950f
+sniffio==1.3.1 \
+    --hash=sha256:2f6da418d1f1e0fddd844478f41680e794e6051915791a034ff65e5f100525a2 \
+    --hash=sha256:f4324edc670a0f49750a81b895f35c3adb843cca46f0530f79fc1babb23789dc
+    # via anyio
 structlog==24.1.0 \
     --hash=sha256:3f6efe7d25fab6e86f277713c218044669906537bb717c1807a09d46bca0714d \
     --hash=sha256:41a09886e4d55df25bdcb9b5c9674bccfab723ff43e0a86a1b7b236be8e57b16
+taskiq==0.11.3 \
+    --hash=sha256:6e67b90c245160c24df0ab5b326952dfa251ed2cacb0e6c1e9e64cce7ab3c279 \
+    --hash=sha256:d6d8a00bd195c77d3dfb2a609e9b2f54d026e072db88ff79bb19477404f207c0
+    # via taskiq-redis
+taskiq-dependencies==1.5.3 \
+    --hash=sha256:ee52d01e6683cafbeb0a0b0e4abf58b2d304d7db0769e024fe0a0e8bcedadc57 \
+    --hash=sha256:ffa81997b8d6f4be0b2e08280b241dc3cecd9b49ff1fd259688e244d977cadd4
+    # via taskiq
+taskiq-redis==0.5.6 \
+    --hash=sha256:7591e32e2cf127ba58aeb15d6e62ea261ad9ec7ea54936043c9517ac90257224 \
+    --hash=sha256:f113f9e2331d2a4babbe7fe902898efe6921319680118893444201058683eee8
 typing-extensions==4.11.0 \
     --hash=sha256:83f085bd5ca59c80295fc2a82ab5dac679cbe02b9f33f7d83af68e241bea51b0 \
     --hash=sha256:c1f94d72897edaf4ce775bb7558d5b79d8126906a14ea5ed1635921406c0387a
     # via
     #   pydantic
     #   pydantic-core
+    #   taskiq
+urllib3==2.2.1 \
+    --hash=sha256:450b20ec296a467077128bff42b73080516e71b56ff59a60a02bef2232c4fa9d \
+    --hash=sha256:d0570876c61ab9e520d776c38acbbb5b05a776d3f9ff98a5c8fd5162a444cf19
+    # via sentry-sdk
 uvloop==0.19.0 \
     --hash=sha256:0246f4fd1bf2bf702e06b0d45ee91677ee5c31242f39aab4ea6fe0c51aedd0fd \
     --hash=sha256:02506dc23a5d90e04d4f65c7791e65cf44bd91b37f24cfc3ef6cf2aff05dc7ec \
@@ -536,3 +591,7 @@ yarl==1.9.4 \
     --hash=sha256:f3bc6af6e2b8f92eced34ef6a96ffb248e863af20ef4fde9448cc8c9b858b749 \
     --hash=sha256:f7d6b36dd2e029b6bcb8a13cf19664c7b8e19ab3a58e0fefbb5b8461447ed5ec
     # via aiohttp
+zipp==3.18.1 \
+    --hash=sha256:206f5a15f2af3dbaee80769fb7dc6f249695e940acca08dfb2a4769fe61e538b \
+    --hash=sha256:2884ed22e7d8961de1c9a05142eb69a247f120291bc0206a00a7642f09b5b715
+    # via importlib-metadata

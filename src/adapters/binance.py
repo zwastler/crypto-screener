@@ -39,7 +39,8 @@ class BinanceWSS(BaseExchangeWSS):
         if self.wss_client:
             symbols = await self.get_symbols_list()
             args = [f"{symbol.lower()}@trade" for symbol in symbols]
-            await self.send_json(self.create_ws_message("SUBSCRIBE", args=args))
+            for args_chunk in (args[i : i + 50] for i in range(0, len(args), 50)):
+                await self.send_json(self.create_ws_message("SUBSCRIBE", args=args_chunk))
 
     async def process_message(self, message: dict[str, Any], queue: asyncio.Queue) -> None:
         if "subscribe" in message.get("id", ""):

@@ -21,6 +21,12 @@ def create_tg_message(
     delim = emoji.emojize(":minus:")
     signal_icon = emoji.emojize(":counterclockwise_arrows_button:")
 
+    price_min = f"{price_min:.9f}".rstrip("0")
+    price_min = price_min if not price_min.endswith(".") else price_min + "0"
+
+    price_max = f"{price_max:.9f}".rstrip("0")
+    price_max = price_max if not price_max.endswith(".") else price_max + "0"
+
     if is_uptrend:
         icon = emoji.emojize(":red_triangle_pointed_up:")
         action = "Pump: +"
@@ -29,10 +35,11 @@ def create_tg_message(
         icon = emoji.emojize(":red_triangle_pointed_down:")
         action = "Dump: -"
         txt_prices = f"{price_max} - {price_min}"
+    DEBUG = "" if not settings.DEBUG else f" {emoji.emojize(":robot:")}"
 
     return (
-        f"{grc} {exchange} {delim} {period}м {delim} "
-        f"[{symbol}](https://www.coinglass.com/tv/{exchange.capitalize()}_{symbol})\n"
+        f"{grc} {exchange} {delim} {period}м {delim}"
+        f"[{symbol}](https://www.coinglass.com/tv/{exchange.capitalize()}_{symbol}){DEBUG}\n"
         f"{icon} {action}{str(abs(percent))}% ({txt_prices})\n{signal_icon} Signals 24h: {signals}"
     )
 

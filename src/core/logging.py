@@ -95,6 +95,9 @@ def setup_logging(cache_logger_on_first_use: bool = True) -> None:
             "aiohttp": {"handlers": logging_handlers, "level": settings.LOGLEVEL, "propagate": True},
             "aiohttp.client": {"handlers": logging_handlers, "level": settings.LOGLEVEL, "propagate": True},
             "aiohttp.websocket": {"handlers": logging_handlers, "level": settings.LOGLEVEL, "propagate": True},
+            "taskiq": {"handlers": logging_handlers, "level": settings.LOGLEVEL, "propagate": True},
+            "taskiq.worker": {"handlers": logging_handlers, "level": settings.LOGLEVEL, "propagate": True},
+            "taskiq.receiver.receiver": {"handlers": logging_handlers, "level": "WARNING", "propagate": True},
             # **(loggers_config if loggers_config else {}),
         },
     }

@@ -7,14 +7,57 @@ services:
     networks:
       - screener_network
 
-  screener:
-    container_name: screener_worker
+  screener_bybit:
+    container_name: screener_bybit
     image: zwastler/crypto_screener:latest
     build:
       context: ..
       dockerfile: deployment/Dockerfile
+    environment:
+      - EXCHANGES=["bybit"]
     env_file:
       - ../.env
+    networks:
+      - screener_network
+
+  screener_gate:
+    container_name: screener_gate
+    image: zwastler/crypto_screener:latest
+    environment:
+      - EXCHANGES=["gate"]
+    env_file:
+      - ../.env
+    networks:
+      - screener_network
+
+  screener_binance:
+    container_name: screener_binance
+    image: zwastler/crypto_screener:latest
+    environment:
+      - EXCHANGES=["binance"]
+    env_file:
+      - ../.env
+    networks:
+      - screener_network
+
+  screener_okx:
+    container_name: screener_okx
+    image: zwastler/crypto_screener:latest
+    environment:
+      - EXCHANGES=["okx"]
+    env_file:
+      - ../.env
+    networks:
+      - screener_network
+
+  screener_worker:
+    container_name: screener_worker
+    image: zwastler/crypto_screener:latest
+    command: "taskiq worker core.taskiq_helper:broker --fs-discover --no-configure-logging --tasks-pattern 'worker.py' -w 4"
+    env_file:
+      - ../.env
+#    ports:
+#      - "9000:9000"
     networks:
       - screener_network
 
