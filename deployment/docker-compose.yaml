@@ -6,6 +6,7 @@ services:
     image: redislabs/redistimeseries:latest
     networks:
       - screener_network
+    restart: always
 
   screener_bybit:
     container_name: screener_bybit
@@ -19,6 +20,7 @@ services:
       - ../.env
     networks:
       - screener_network
+    restart: always
 
   screener_gate:
     container_name: screener_gate
@@ -29,6 +31,7 @@ services:
       - ../.env
     networks:
       - screener_network
+    restart: always
 
   screener_binance:
     container_name: screener_binance
@@ -39,6 +42,7 @@ services:
       - ../.env
     networks:
       - screener_network
+    restart: always
 
   screener_okx:
     container_name: screener_okx
@@ -49,17 +53,20 @@ services:
       - ../.env
     networks:
       - screener_network
+    restart: always
 
   screener_worker:
-    container_name: screener_worker
     image: zwastler/crypto_screener:latest
     command: "taskiq worker core.taskiq_helper:broker --fs-discover --no-configure-logging --tasks-pattern 'worker.py' -w 4"
+    deploy:
+      replicas: 2
     env_file:
       - ../.env
 #    ports:
 #      - "9000:9000"
     networks:
       - screener_network
+    restart: always
 
 networks:
   screener_network:

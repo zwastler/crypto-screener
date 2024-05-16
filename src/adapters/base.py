@@ -4,7 +4,7 @@ from typing import Any
 
 import structlog
 from aiohttp import ClientSession, ClientWebSocketResponse, WSMsgType, client_exceptions
-from msgspec import json
+from msgspec import MsgspecError, json
 
 logger = structlog.get_logger(__name__)
 decoder = json.Decoder()
@@ -41,6 +41,10 @@ class BaseExchangeWSS(metaclass=SingletonMeta):
                 await self.wss_client.send_str(encoder.encode(message).decode(), compress=False)
             except client_exceptions.ClientError:
                 await logger.awarning("Failed to send message", message=message, exchange=self.exchange, exc_info=True)
+            except Exception:
+                await logger.awarning(
+                    "Exception in send message", message=message, exchange=self.exchange, exc_info=True
+                )
         else:
             await logger.awarning("WebSocket connection not established", exchange=self.exchange)
 
@@ -58,7 +62,7 @@ class BaseExchangeWSS(metaclass=SingletonMeta):
                         await self.after_connect()
                         await self.receive_messages(queue)
             except asyncio.CancelledError:
-                logger.info(f"Task was cancelled: {self.__class__.__name__}")
+                await logger.ainfo(f"Task was cancelled: {self.__class__.__name__}")
                 if self.wss_client:
                     await self.wss_client.close()
                 await self.after_cancel()
@@ -70,29 +74,36 @@ class BaseExchangeWSS(metaclass=SingletonMeta):
                     exception=err,
                     exc_info=True,
                 )
-                await asyncio.sleep(0.25)  # wait before attempting to reconnect
+                self.wss_client = None
+            await asyncio.sleep(0.25)  # wait before attempting to reconnect
 
     async def receive_messages(self, queue: asyncio.Queue) -> None:
-        while True:
-            if not self.wss_client:
-                await logger.awarning("WebSocket connection not established", exchange=self.exchange)
-                await asyncio.sleep(0.25)
-                continue
-            async for msg in self.wss_client:  # type: ignore
-                if msg.type == WSMsgType.TEXT:
+        message = ""
+        if not self.wss_client:
+            await logger.awarning("WebSocket connection not established", exchange=self.exchange)
+            await asyncio.sleep(0.25)
+            return
+        async for msg in self.wss_client:  # type: ignore
+            if msg and hasattr(msg, "type") and msg.type == WSMsgType.TEXT:
+                try:
                     message = decoder.decode(msg.data)
-                    try:
-                        await self.process_message(message, queue)
-                    except Exception:
-                        await logger.awarning(
-                            "Failed process message", message=message, exchange=self.exchange, exc_info=True
-                        )
+                    await self.process_message(message, queue)
+                except MsgspecError:
+                    await logger.awarning("Failed to decode message", exchange=self.exchange, exc_info=True)
+                except Exception as err:
+                    await logger.awarning(
+                        f"Failed process: {message=}",
+                        exchange=self.exchange,
+                        exc_info=True,
+                        exception=err,
+                    )
 
-                elif msg.type in (WSMsgType.ERROR, WSMsgType.CLOSED):
-                    await logger.awarning("WebSocket closed", exchange=self.exchange)
-                    break
-                else:
-                    await logger.awarning(f"Unknown MsgType: {msg.type}", exchange=self.exchange)
+            elif msg.type in (WSMsgType.ERROR, WSMsgType.CLOSED):
+                await logger.awarning("WebSocket closed", exchange=self.exchange)
+                return
+            else:
+                await logger.awarning(f"Unknown MsgType: {msg.type}", exchange=self.exchange)
+        await logger.awarning("Exit from receive_messages", exchange=self.exchange)
 
     async def process_message(self, message: dict[str, Any], queue: asyncio.Queue) -> None:
         message_id, message_ts = self.parse_message_metadata(message)
