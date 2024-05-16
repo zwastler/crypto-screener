@@ -55,6 +55,17 @@ services:
       - screener_network
     restart: always
 
+  screener_htx:
+    container_name: screener_htx
+    image: zwastler/crypto_screener:latest
+    environment:
+      - EXCHANGES=["htx"]
+    env_file:
+      - ../.env
+    networks:
+      - screener_network
+    restart: always
+
   screener_worker:
     image: zwastler/crypto_screener:latest
     command: "taskiq worker core.taskiq_helper:broker --fs-discover --no-configure-logging --tasks-pattern 'worker.py' -w 4"

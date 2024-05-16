@@ -1,4 +1,5 @@
 import asyncio
+import gzip
 import time
 from typing import Any
 
@@ -97,12 +98,15 @@ class BaseExchangeWSS(metaclass=SingletonMeta):
                         exc_info=True,
                         exception=err,
                     )
+            elif msg.type == WSMsgType.BINARY:
+                message = decoder.decode(gzip.decompress(msg.data).decode())
+                await self.process_message(message, queue)
 
             elif msg.type in (WSMsgType.ERROR, WSMsgType.CLOSED):
                 await logger.awarning("WebSocket closed", exchange=self.exchange)
                 return
             else:
-                await logger.awarning(f"Unknown MsgType: {msg.type}", exchange=self.exchange)
+                await logger.awarning(f"Unknown MsgType: {msg.type} ({msg})", exchange=self.exchange)
         await logger.awarning("Exit from receive_messages", exchange=self.exchange)
 
     async def process_message(self, message: dict[str, Any], queue: asyncio.Queue) -> None:
